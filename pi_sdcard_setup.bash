@@ -3,7 +3,7 @@
 # See the man page at the end of this file for more information.
 
 # MIT License 
-# Oritinal work Copyright (c) 2017 Ken Fallon http://kenfallon.com
+# Original work Copyright (c) 2017 Ken Fallon http://kenfallon.com
 # Modified work Copyright (c) 2017 Bob Forgey http://grumpydogconsulting.com
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
