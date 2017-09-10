@@ -17,17 +17,17 @@ pi\_sdcard\_setup [options] [file ...]
 ::
 
      Options:
-       -h             brief help message
-       -m             full documentation
+       -h|--help      brief help message
+       -m|--man       full documentation
        -d|--download <download URL>
 
 OPTIONS
 =======
 
-**-h\|--hhelp**
+**-h\|--help**
     Print a brief help message and exits.
 
-**-m\|--mman**
+**-m\|--man**
     Prints the manual page and exits.
 
 **-d\|--download** *URL to download image*
@@ -43,13 +43,21 @@ DESCRIPTION
 Given a Raspbian image, **pi\_sdcard\_setup.bash** will modify the image
 to:
 
-Enable SSH
-Copy over a SSH key
-    This will allow logging into the RPi without using a password.
+1. Enable SSH
+  SSH is turned off by default in a Raspbian image.
 
-Change the pi user password
-Change the root password
-Disallow root from logging in via SSH.
+2. Copy over a SSH key
+  This will allow logging into the RPi without using a password.
+
+3. Change the pi user password
+  Make it something other than "raspberry".
+
+4. Change the root password
+  This also enables the root account.
+
+5. Disallow root from logging in via SSH.
+  Now that there is a root account, we shouldn't be able to login to
+  it from the network.
 
 When this updated image is burned to an sdcard, the RPi will have these
 changes before it runs the first time.
@@ -57,9 +65,13 @@ changes before it runs the first time.
 EXAMPLES
 ========
 
-Download and process the default (latest Raspbian) image:
+Download and process the default (latest Raspbian) image::
+
+  pi_sdcard_setup.bash -d
 
 Process an image you've alread downloaded. Perhaps you've made a change
-to this script and want to re-run it.
+to this script and want to re-run it::
+
+  pi_sdcard_setup.bash raspbian_image.zip
 
 

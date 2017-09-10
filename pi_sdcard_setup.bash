@@ -220,26 +220,29 @@ pi_sdcard_setup - Tighten up a Raspbian Pi sdcard image
 pi_sdcard_setup [options] [file ...]
 
  Options:
-   -h             brief help message
-   -m             full documentation
+   -h|--help      brief help message
+   -m|--man       full documentation
    -d|--download <download URL>
 
 =head1 OPTIONS
 
 =over 8
 
-=item B<-h|--hhelp>
+=item B<-h|--help>
 
 Print a brief help message and exits.
 
-=item B<-m|--mman>
+=item B<-m|--man>
 
 Prints the manual page and exits.
 
 =item B<-d|--download> F<URL to download image>
 
-Downloads a Raspbian Pi image to process. If the URL is not given, the default location is L<https://downloads.raspberrypi.org/raspbian_latest>
-If this option is not used, you will need to supply the name of a .zip file that contains an Raspbian image.
+Downloads a Raspbian Pi image to process. If the URL is not given, the
+default location is
+L<https://downloads.raspberrypi.org/raspbian_latest> If this option is
+not used, you will need to supply the name of a .zip file that
+contains an Raspbian image.
 
 =back
 
@@ -251,15 +254,24 @@ Given a Raspbian image, B<pi_sdcard_setup.bash> will modify the image to:
 
 =item Enable SSH
 
+SSH is turned off by default in a Raspbian image.
+
 =item Copy over a SSH key
 
 This will allow logging into the RPi without using a password.
+
+Make it something other than "raspberry".
 
 =item Change the pi user password
 
 =item Change the root password
 
+This also enables the root account.
+
 =item Disallow root from logging in via SSH.
+
+Now that there is a root account, we shouldn't be able to login to it
+from the network.
 
 =back
 
