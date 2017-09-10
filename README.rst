@@ -1,8 +1,16 @@
+-  `OVERVIEW <#OVERVIEW>`__
 -  `NAME <#NAME>`__
 -  `SYNOPSIS <#SYNOPSIS>`__
 -  `OPTIONS <#OPTIONS>`__
 -  `DESCRIPTION <#DESCRIPTION>`__
 -  `EXAMPLES <#EXAMPLES>`__
+
+OVERVIEW
+========
+
+This is based on a script by Ken Fallon, as described in Hacker Public
+Radio episode 2356: `Safely enabling ssh in the default Raspbian Image
+<http://hackerpublicradio.org/eps.php?id=2356>`_. Thanks, Ken!
 
 NAME
 ====
