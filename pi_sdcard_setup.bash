@@ -26,10 +26,11 @@
 
 function cleanup()
 {
+    echo In error cleanup
     # Unmount the sdcard partition if we caught an error after mounting
-    ( mount | grep -q "$sdcard_mount" 2>/dev/null ) && umount "$sdcard_mount"
+    ( mount | grep -q "$sdcard_mount" 2>/dev/null ) && sudo umount "$sdcard_mount"
     # Detach the loop devices if we caught an error after they were created
-    test "$loopdev" && losetup -d "$loopdev"
+    test "$loopdev" && sudo losetup -d "$loopdev"
 }
 
 # Run the cleanup function above if we exit early
@@ -39,11 +40,13 @@ trap cleanup ERR INT TERM
 set -e 
 
 # Change these three variables
-root_password_clear="correct horse battery staple"
-pi_password_clear="wrong cart charger paperclip"
-public_key_file="id_ed25519.pub"
+root_password_clear="${RPI_ROOT_PW_CLEAR:-correct horse battery staple}"
+pi_password_clear="${RPI_PI_PW_CLEAR:-wrong cart charger paperclip}"
+public_key_file="${RPI_PUB_KEY_PATH:-${HOME}/.ssh/id_ed25519.pub}"
 
 sdcard_mount="/mnt/sdcard"
+
+cmdline="$0 $*"
 
 # Note that we use "$@" to let each command-line parameter expand to a
 # separate word. The quotes around "$@" are essential!
@@ -54,6 +57,8 @@ if [ $? -ne 0 ]; then
     echo 'Terminating...' >&2
     exit 1
 fi
+
+image_to_download="https://downloads.raspberrypi.org/raspbian_latest"
 
 # Note the quotes around "$TEMP": they are essential!
 eval set -- "$TEMP"
@@ -67,7 +72,7 @@ while true; do
             use_download=1
 	    case "$2" in
 		'')
-		    echo 'Download, using default argument ' ${image_to_download}
+		    echo 'Download, using default location' ${image_to_download}
 		    ;;
 		*)
 		    echo "Download, argument '$2'"
@@ -95,15 +100,39 @@ while true; do
     esac
 done
 
-image_to_download="https://downloads.raspberrypi.org/raspbian_latest"
-checksum="$(wget --quiet https://www.raspberrypi.org/downloads/raspbian/ -O - | egrep -m 1 'SHA-256' | awk -F '<|>' '{print $9}')"
-
-if [[ ! $checksum =~ [0-9a-fA-F]{64} ]]
+if [[ $EUID -ne 0 ]]
 then
-    echo "Error occurred while parsing for the Raspian checksum."
-    echo "You will need to fix this before proceeding."
+    echo
+    echo Please run this script as root: sudo $cmdline
+    echo
+    exit 0
+fi
+
+#------------------------------------------------------------
+# Check for executables we need
+declare -A nopes
+for i in wget sha256sum 7z losetup python3;
+do
+    if type $i >/dev/null 2>&1;
+    then
+        true
+    else
+        nopes[${#nopes[@]}]=$i
+    fi
+done
+
+if [[ ${#nopes[@]} -gt 1 ]]
+then
+    echo
+    echo Please install the following programs: ${nopes[@]}
+    exit 1
+elif [[ ${#nopes[@]} -eq 1 ]]
+then
+    echo
+    echo Please install the following program: ${nopes[@]}
     exit 1
 fi
+#------------------------------------------------------------
 
 if [ ! -e "${public_key_file}" ]
 then
@@ -116,17 +145,33 @@ fi
 if [[ $use_download -eq 0 ]]
 then
     # We haven't specified a download, so we need an image file
-    zip_file_name=${1:?No download specified, so a zip file name must be specified}
+    zip_file_name="${1:?No download specified, so a zip file name must be specified}"
 else
-    zip_file_name=./raspian_image.zip
+    # Use a default zip file path of "./raspian_image.zip"
+    zip_file_name="${1:-./raspbian_image.zip}"
+
+    # 1. Get the source of the download index page
+    # 2. Get the 30 lines following the name of the image to download
+    # 3. Look for the first line containing 'SHA-256'
+    # 4. Extract the checksum from that line.
+    # Yes, a bunch of assumptions, but fewer than the last version.
+
+    checksum_line=$(wget --quiet https://www.raspberrypi.org/downloads/raspbian/ -O - | grep -A 30 -F \"$image_to_download\" | grep SHA-256 | head -1)
+    checksum=$(echo "$checksum_line" | sed -e 's/.*\([0-9a-fA-F]\{64\}\).*/\1/')
+
+    if [[ ! $checksum =~ [0-9a-fA-F]{64} ]]
+    then
+        echo "Error occurred while parsing for the Raspian checksum."
+        echo "You will need to fix this before proceeding."
+        exit 1
+    fi
 
     # Download the latest image, using the  --continue "Continue getting a partially-downloaded file"
-    wget --continue ${image_to_download} -O raspbian_image.zip
+    wget --continue "${image_to_download}" -O "${zip_file_name}"
 
-    echo "Checking the SHA-256 of the downloaded image matches \"${checksum}\""
+    echo "Checking that the SHA-256 of the downloaded image matches \"${checksum}\""
 
-    #if [ $( sha256sum raspbian_image.zip | grep ${checksum} | wc -l ) -eq "1" ]
-    if [[ $( sha256sum raspbian_image.zip | awk '{ print $1 }') == ${checksum} ]]
+    if [[ $( sha256sum "${zip_file_name}" | awk '{ print $1 }') == ${checksum} ]]
     then
         echo "The checksums match"
     else
@@ -139,12 +184,12 @@ fi
 mkdir -p ${sdcard_mount}
 
 # unzip
-extracted_image=$( 7z l raspbian_image.zip | awk '/^[0-9]{4}-[0-9]{2}-[0-9]{2}.*img$/ {print $NF}' )
+extracted_image="$( 7z l ${zip_file_name} | awk '/^[0-9]{4}-[0-9]{2}-[0-9]{2}.*img$/ {print $NF}' )"
 echo "The name of the image file is \"${extracted_image}\""
 
-7z x raspbian_image.zip
+7z -y x "${zip_file_name}"
 
-if [ ! -e ${extracted_image} ]
+if [ ! -e "${extracted_image}" ]
 then
     echo "Can't find the image \"${extracted_image}\""
     exit
@@ -198,13 +243,13 @@ chmod 0600 "${sdcard_mount}/home/pi/.ssh/authorized_keys"
 umount "${sdcard_mount}"
 losetup -d ${loopdev}
 new_name="${extracted_image%.*}-ssh-enabled.img"
-cp -v "${extracted_image}" "${new_name}"
+mv -v "${extracted_image}" "${new_name}"
 
 lsblk
 
 echo ""
 echo "Now you can burn the disk using something like:"
-echo "      dd bs=4M status=progress if=${new_name} of=/dev/mmcblk????"
+echo "      dd bs=4M status=progress if=${new_name} of=/dev/mmcblk????; sync"
 echo ""
 
 exit
@@ -217,12 +262,12 @@ pi_sdcard_setup - Tighten up a Raspbian Pi sdcard image
 
 =head1 SYNOPSIS
 
-pi_sdcard_setup [options] [file ...]
+pi_sdcard_setup [options] [F<file>]
 
  Options:
    -h|--help      brief help message
    -m|--man       full documentation
-   -d|--download <download URL>
+   -d|--download  [F<download URL>]
 
 =head1 OPTIONS
 

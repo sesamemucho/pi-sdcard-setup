@@ -20,14 +20,14 @@ pi\_sdcard\_setup - Tighten up a Raspbian Pi sdcard image
 SYNOPSIS
 ========
 
-pi\_sdcard\_setup [options] [file ...]
+pi\_sdcard\_setup [options] [file]
 
 ::
 
      Options:
        -h|--help      brief help message
        -m|--man       full documentation
-       -d|--download <download URL>
+       -d|--download  <download URL>
 
 OPTIONS
 =======
@@ -43,7 +43,8 @@ OPTIONS
     the default location is
     https://downloads.raspberrypi.org/raspbian_latest If this option is
     not used, you will need to supply the name of a .zip file that
-    contains an Raspbian image.
+    contains an Raspbian image. If you supply a different location,
+    you will need to check the SHA256sum yourself.
 
 DESCRIPTION
 ===========
@@ -55,13 +56,21 @@ to:
   SSH is turned off by default in a Raspbian image.
 
 2. Copy over a SSH key
-  This will allow logging into the RPi without using a password.
+  This will allow logging into the RPi without using a password. By
+  default, this key is at "${HOME}/.ssh/id_ed25519.pub". To change it,
+  you can either edit **pi\_sdcard\_setup.bash** or set the
+  environmental variable RPI_PUB_KEY_PATH.
 
-3. Change the pi user password
-  Make it something other than "raspberry".
+3. Change the pi user password Make it something other than
+  "raspberry". By default, this will be changed to "wrong cart charger
+  paperclip". To change it, you can either edit
+  **pi\_sdcard\_setup.bash** or set the environmental variable
+  RPI_PI_PW_CLEAR.
 
-4. Change the root password
-  This also enables the root account.
+4. Change the root password This also enables the root account. By
+  default, this will be changed to "correct horse battery staple". To
+  change it, you can either edit **pi\_sdcard\_setup.bash** or set the
+  environmental variable RPI_ROOT_PW_CLEAR.
 
 5. Disallow root from logging in via SSH.
   Now that there is a root account, we shouldn't be able to login to
