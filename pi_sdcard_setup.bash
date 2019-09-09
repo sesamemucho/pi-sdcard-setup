@@ -26,7 +26,6 @@
 
 function cleanup()
 {
-    echo In error cleanup
     # Unmount the sdcard partition if we caught an error after mounting
     ( mount | grep -q "$sdcard_mount" 2>/dev/null ) && sudo umount "$sdcard_mount"
     # Detach the loop devices if we caught an error after they were created
